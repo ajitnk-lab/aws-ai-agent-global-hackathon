@@ -1,0 +1,41 @@
+default_agent: security_agent
+agents:
+  security_agent:
+    name: security_agent
+    entrypoint: /persistent/home/ubuntu/workspace/bedrockagent-agentcore-agentagetway/agentcore-security-app/runtime/security_agent.py
+    platform: linux/arm64
+    container_runtime: docker
+    source_path: /persistent/home/ubuntu/workspace/bedrockagent-agentcore-agentagetway/agentcore-security-app/runtime
+    aws:
+      execution_role: arn:aws:iam::039920874011:role/AmazonBedrockAgentCoreSDKRuntime-us-east-1-29161b1e88
+      execution_role_auto_create: false
+      account: 039920874011
+      region: us-east-1
+      ecr_repository: 039920874011.dkr.ecr.us-east-1.amazonaws.com/bedrock-agentcore-security_agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+        network_mode_config: null
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+    bedrock_agentcore:
+      agent_id: security_agent-zoiv02GSnP
+      agent_arn: arn:aws:bedrock-agentcore:us-east-1:039920874011:runtime/security_agent-zoiv02GSnP
+      agent_session_id: null
+    codebuild:
+      project_name: bedrock-agentcore-security_agent-builder
+      execution_role: arn:aws:iam::039920874011:role/AmazonBedrockAgentCoreSDKCodeBuild-us-east-1-29161b1e88
+      source_bucket: bedrock-agentcore-codebuild-sources-039920874011-us-east-1
+    memory:
+      mode: STM_ONLY
+      memory_id: security_agent_mem-Eul1cWE0F3
+      memory_arn: arn:aws:bedrock-agentcore:us-east-1:039920874011:memory/security_agent_mem-Eul1cWE0F3
+      memory_name: security_agent_mem
+      event_expiry_days: 30
+      first_invoke_memory_check_done: false
+      was_created_by_toolkit: false
+    authorizer_configuration: null
+    request_header_configuration: null
+    oauth_configuration: null
