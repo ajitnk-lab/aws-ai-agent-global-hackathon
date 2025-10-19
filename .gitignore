@@ -46,3 +46,6 @@ lambda_deploy*/
 # Test results
 test_results/
 *.json
+
+# Exclude all zip files in root directory
+*.zip

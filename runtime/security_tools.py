@@ -15,6 +15,17 @@ class SecurityFinding:
     description: str
     resource_id: str
     region: str
+    
+    def to_dict(self):
+        """Convert SecurityFinding to dictionary for JSON serialization"""
+        return {
+            'service': self.service,
+            'severity': self.severity,
+            'title': self.title,
+            'description': self.description,
+            'resource_id': self.resource_id,
+            'region': self.region
+        }
 
 
 class SecurityAssessmentTools:
@@ -39,23 +50,48 @@ class SecurityAssessmentTools:
             'summary': self._generate_service_summary(results)
         }
     
-    def get_security_findings(self, severity_filter: Optional[str] = None) -> Dict[str, Any]:
-        """Retrieve security findings from multiple AWS services"""
+    def get_security_findings(self, severity_filter: Optional[str] = None, limit: Optional[int] = None, region: Optional[str] = None, service_filter: Optional[str] = None, resource_type: Optional[str] = None, compliance_status: Optional[str] = None) -> Dict[str, Any]:
+        """Retrieve security findings from multiple AWS services with comprehensive filtering"""
+        # Use specified region or default to instance region
+        target_region = region or self.region
+        
+        # Create session for target region if different from default
+        if target_region != self.region:
+            session = boto3.Session(region_name=target_region)
+        else:
+            session = self.session
+        
+        # Set default limit to match AWS API response (no limit means get all)
+        max_results = limit if limit is not None else 1000  # AWS API max is 100 per call, but we'll paginate
+        
         findings = []
         
-        # Get Security Hub findings
-        findings.extend(self._get_security_hub_findings(severity_filter))
+        # Get findings from specified services or all services
+        if not service_filter or service_filter.upper() == 'SECURITYHUB':
+            findings.extend(self._get_security_hub_findings(severity_filter, session, target_region, resource_type, compliance_status, max_results))
         
-        # Get GuardDuty findings
-        findings.extend(self._get_guardduty_findings(severity_filter))
+        if not service_filter or service_filter.upper() == 'GUARDDUTY':
+            findings.extend(self._get_guardduty_findings(severity_filter, session, target_region, resource_type, max_results))
         
-        # Get Inspector findings
-        findings.extend(self._get_inspector_findings(severity_filter))
+        if not service_filter or service_filter.upper() == 'INSPECTOR':
+            findings.extend(self._get_inspector_findings(severity_filter, session, target_region, resource_type, max_results))
+        
+        # Apply final limit if specified
+        if limit is not None:
+            findings = findings[:limit]
         
         return {
             'status': 'success',
             'total_findings': len(findings),
-            'findings': findings[:50],  # Limit to 50 for performance
+            'filters_applied': {
+                'severity': severity_filter or 'ALL',
+                'region': target_region,
+                'service': service_filter or 'ALL',
+                'resource_type': resource_type or 'ALL',
+                'compliance_status': compliance_status or 'ALL',
+                'limit': limit or 50
+            },
+            'findings': [f.to_dict() for f in findings],  # Convert to dictionaries for JSON serialization
             'summary': self._generate_findings_summary(findings)
         }
     
@@ -193,15 +229,44 @@ class SecurityAssessmentTools:
         except Exception as e:
             return {'enabled': False, 'error': str(e)}
     
-    def _get_security_hub_findings(self, severity_filter: Optional[str]) -> List[SecurityFinding]:
+    def _get_security_hub_findings(self, severity_filter: Optional[str], session: boto3.Session = None, region: str = None, resource_type: Optional[str] = None, compliance_status: Optional[str] = None, max_results: int = 1000) -> List[SecurityFinding]:
         try:
-            client = self.session.client('securityhub')
+            session = session or self.session
+            region = region or self.region
+            client = session.client('securityhub')
             filters = {}
             
             if severity_filter:
                 filters['SeverityLabel'] = [{'Value': severity_filter.upper(), 'Comparison': 'EQUALS'}]
             
-            findings = client.get_findings(Filters=filters, MaxResults=20)
+            if resource_type:
+                filters['ResourceType'] = [{'Value': f'AWS::{resource_type.upper()}::', 'Comparison': 'PREFIX'}]
+            
+            if compliance_status:
+                filters['ComplianceStatus'] = [{'Value': compliance_status.upper(), 'Comparison': 'EQUALS'}]
+            
+            # Paginate through all findings to get complete dataset
+            all_findings = []
+            next_token = None
+            
+            while len(all_findings) < max_results:
+                # AWS Security Hub max is 100 per call
+                page_size = min(100, max_results - len(all_findings))
+                
+                kwargs = {
+                    'Filters': filters,
+                    'MaxResults': page_size
+                }
+                
+                if next_token:
+                    kwargs['NextToken'] = next_token
+                
+                response = client.get_findings(**kwargs)
+                all_findings.extend(response['Findings'])
+                
+                next_token = response.get('NextToken')
+                if not next_token:
+                    break
             
             return [
                 SecurityFinding(
@@ -210,23 +275,50 @@ class SecurityAssessmentTools:
                     title=f.get('Title', 'Unknown'),
                     description=f.get('Description', 'No description'),
                     resource_id=f.get('Resources', [{}])[0].get('Id', 'Unknown'),
-                    region=self.region
+                    region=region
                 )
-                for f in findings['Findings']
+                for f in all_findings[:max_results]
             ]
         except Exception:
             return []
     
-    def _get_guardduty_findings(self, severity_filter: Optional[str]) -> List[SecurityFinding]:
+    def _get_guardduty_findings(self, severity_filter: Optional[str], session: boto3.Session = None, region: str = None, resource_type: Optional[str] = None, max_results: int = 1000) -> List[SecurityFinding]:
         try:
-            client = self.session.client('guardduty')
+            session = session or self.session
+            region = region or self.region
+            client = session.client('guardduty')
             detectors = client.list_detectors()
             
             if not detectors['DetectorIds']:
                 return []
             
             detector_id = detectors['DetectorIds'][0]
-            findings = client.list_findings(DetectorId=detector_id, MaxResults=20)
+            
+            # Build finding criteria for filtering
+            finding_criteria = {}
+            if severity_filter:
+                # GuardDuty uses numeric severity: 1.0-3.9=LOW, 4.0-6.9=MEDIUM, 7.0-8.9=HIGH, 9.0-10.0=CRITICAL
+                severity_ranges = {
+                    'LOW': {'gte': 1.0, 'lt': 4.0},
+                    'MEDIUM': {'gte': 4.0, 'lt': 7.0},
+                    'HIGH': {'gte': 7.0, 'lt': 9.0},
+                    'CRITICAL': {'gte': 9.0, 'lte': 10.0}
+                }
+                if severity_filter.upper() in severity_ranges:
+                    range_filter = severity_ranges[severity_filter.upper()]
+                    finding_criteria['severity'] = range_filter
+            
+            if resource_type:
+                finding_criteria['type'] = {'eq': [f'{resource_type.upper()}*']}
+            
+            if finding_criteria:
+                findings = client.list_findings(
+                    DetectorId=detector_id,
+                    FindingCriteria={'Criterion': finding_criteria},
+                    MaxResults=min(50, max_results)  # GuardDuty max is 50 per call
+                )
+            else:
+                findings = client.list_findings(DetectorId=detector_id, MaxResults=min(50, max_results))
             
             if not findings['FindingIds']:
                 return []
@@ -238,33 +330,52 @@ class SecurityAssessmentTools:
             
             result = []
             for f in finding_details['Findings']:
-                severity = str(f.get('Severity', 0))
-                if severity_filter and severity_filter.upper() not in ['LOW', 'MEDIUM', 'HIGH']:
-                    continue
+                severity_num = f.get('Severity', 0)
+                # Convert numeric severity to label
+                if severity_num >= 9.0:
+                    severity_label = 'CRITICAL'
+                elif severity_num >= 7.0:
+                    severity_label = 'HIGH'
+                elif severity_num >= 4.0:
+                    severity_label = 'MEDIUM'
+                else:
+                    severity_label = 'LOW'
                     
                 result.append(SecurityFinding(
                     service='GuardDuty',
-                    severity=severity,
+                    severity=severity_label,
                     title=f.get('Title', 'Unknown'),
                     description=f.get('Description', 'No description'),
                     resource_id=f.get('Resource', {}).get('InstanceDetails', {}).get('InstanceId', 'Unknown'),
-                    region=self.region
+                    region=region
                 ))
             
             return result
         except Exception:
             return []
     
-    def _get_inspector_findings(self, severity_filter: Optional[str]) -> List[SecurityFinding]:
+    def _get_inspector_findings(self, severity_filter: Optional[str], session: boto3.Session = None, region: str = None, resource_type: Optional[str] = None, max_results: int = 1000) -> List[SecurityFinding]:
         try:
-            client = self.session.client('inspector2')
-            findings = client.list_findings(maxResults=20)
+            session = session or self.session
+            region = region or self.region
+            client = session.client('inspector2')
+            
+            # Build filter criteria
+            filter_criteria = {}
+            if severity_filter:
+                filter_criteria['severity'] = [{'comparison': 'EQUALS', 'value': severity_filter.upper()}]
+            
+            if resource_type:
+                filter_criteria['resourceType'] = [{'comparison': 'EQUALS', 'value': resource_type.upper()}]
+            
+            if filter_criteria:
+                findings = client.list_findings(filterCriteria=filter_criteria, maxResults=min(100, max_results))  # Inspector max is 100
+            else:
+                findings = client.list_findings(maxResults=min(100, max_results))
             
             result = []
             for f in findings.get('findings', []):
                 severity = f.get('severity', 'UNKNOWN')
-                if severity_filter and severity_filter.upper() != severity:
-                    continue
                     
                 result.append(SecurityFinding(
                     service='Inspector',
@@ -272,7 +383,7 @@ class SecurityAssessmentTools:
                     title=f.get('title', 'Unknown'),
                     description=f.get('description', 'No description'),
                     resource_id=f.get('resources', [{}])[0].get('id', 'Unknown'),
-                    region=self.region
+                    region=region
                 ))
             
             return result
