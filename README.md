@@ -1,100 +1,128 @@
 # AgentCore Security Assessment Application
 
-A complete transformation of the AWS Well-Architected Security MCP server into a production-ready AgentCore application with:
+A complete transformation of the AWS Well-Architected Security MCP server into a production-ready AgentCore application with Bedrock Agent integration.
 
-- **AgentCore Runtime**: Secure agent execution environment with security tools
-- **AgentCore Gateway**: OAuth-protected API gateway for security assessments  
-- **AgentCore Memory**: Persistent security context and findings storage
-- **Bedrock Agent Integration**: Native AWS Bedrock Agent orchestration
-
-## Architecture
+## 🏗️ Architecture
 
 ```
-User Request 
-    ↓
-Bedrock Agent (orchestrates security assessments)
-    ↓
-Lambda Bridge Function (handles OAuth)
-    ↓
-AgentCore Gateway (OAuth protected security tools)
-    ↓
-AgentCore Runtime (security assessment agent)
-    ↓
-AgentCore Memory (persistent security context)
+User Request → Bedrock Agent → Lambda Bridge → AgentCore Gateway (OAuth) → AgentCore Runtime → AgentCore Memory
 ```
 
-## Prerequisites
+**Components:**
+- **Bedrock Agent**: Natural language security assessment interface
+- **Lambda Bridge**: Handles authentication and request routing
+- **AgentCore Gateway**: OAuth-protected API gateway
+- **AgentCore Runtime**: Secure agent execution environment
+- **AgentCore Memory**: Persistent security context storage
 
-- AWS CLI configured with appropriate permissions
-- Python 3.10 or newer
-- AgentCore CLI installed (`pip install bedrock-agentcore-starter-toolkit`)
-- Access to Amazon Bedrock models (Claude 3.7 Sonnet)
+## 🚀 Quick Deployment
 
-## Quick Start
-
-### 1. Install Dependencies
-
+### Prerequisites
 ```bash
-cd agentcore-security-app
+# Install required tools
+pip install bedrock-agentcore-starter-toolkit
+pip install strands-agents
+
+# Configure AWS CLI
+aws configure
+export AWS_REGION=us-east-1
+```
+
+### Option 1: Automated Deployment (Recommended)
+```bash
+git clone https://github.com/ajitnk-lab/agentcore-security-assessment.git
+cd agentcore-security-assessment
 pip install -r requirements.txt
-```
 
-### 2. Set Environment Variables
-
-```bash
-export AWS_REGION=us-east-1  # Your preferred region
-export AWS_PROFILE=default   # Your AWS profile
-```
-
-### 3. Deploy All Components (Automated)
-
-```bash
+# Deploy all components automatically
 cd deploy
 python deploy_all.py
 ```
 
-This will automatically deploy:
-1. AgentCore Memory with security-focused strategies
-2. AgentCore Runtime with security assessment tools
-3. AgentCore Gateway with OAuth integration
-4. Lambda bridge function for Bedrock Agent communication
-5. Bedrock Agent with comprehensive security action groups
+### Option 2: Manual Step-by-Step Deployment
 
-### 4. Test the Integration
-
-```bash
-cd ../test
-python test_integration.py
-```
-
-## Manual Deployment (Step by Step)
-
-If you prefer manual control over the deployment:
-
-### Step 1: Deploy Memory
-
+#### Step 1: Deploy AgentCore Memory
 ```bash
 cd memory
 python setup_memory.py
-# Note the Memory ID and set environment variable
-export BEDROCK_AGENTCORE_MEMORY_ID=<memory-id>
+# ✅ Output: Memory ID (save this)
 ```
 
-### Step 2: Deploy Runtime
-
+#### Step 2: Deploy AgentCore Runtime  
 ```bash
 cd ../runtime
 agentcore configure -e security_agent.py
 agentcore launch
-# Note the Runtime ARN
-export AGENTCORE_RUNTIME_ARN=<runtime-arn>
+# ✅ Output: Runtime ARN (save this)
 ```
 
-### Step 3: Deploy Gateway
-
+#### Step 3: Deploy AgentCore Gateway
 ```bash
 cd ../gateway
-python setup_gateway.py
+python deploy_gateway.py
+# ✅ Output: Gateway URL and OAuth config (save these)
+```
+
+#### Step 4: Deploy Lambda Bridge
+```bash
+cd ../bedrock
+python deploy_lambda.py
+# ✅ Output: Lambda Function ARN (save this)
+```
+
+#### Step 5: Deploy Bedrock Agent
+```bash
+python deploy_agent_functions.py
+# ✅ Output: Agent ID and Alias ID (save these)
+```
+
+#### Step 6: Test Deployment
+```bash
+cd ../test
+python integration_test_final.py
+# ✅ Expected: 100% success rate
+```
+
+## 🧪 Testing Your Deployment
+
+### Test Natural Language Queries
+```python
+import boto3
+
+bedrock_runtime = boto3.client('bedrock-agent-runtime', region_name='us-east-1')
+
+# Replace with your actual Agent ID and Alias ID from deployment
+response = bedrock_runtime.invoke_agent(
+    agentId='YOUR_AGENT_ID',
+    agentAliasId='YOUR_ALIAS_ID', 
+    sessionId='test-session',
+    inputText="Get high severity security findings from us-east-1 region, limit to 3"
+)
+
+# Process streaming response
+for event in response['completion']:
+    if 'chunk' in event and 'bytes' in event['chunk']:
+        print(event['chunk']['bytes'].decode('utf-8'))
+```
+
+### Example Queries That Work
+- "Check security services configuration for us-west-2 region"
+- "Get medium severity security findings, limit to 5 results"  
+- "Analyze security posture for EC2 service with recommendations"
+- "List 1 security hub finding from us-east-1 region of high risk"
+
+## 🔧 Configuration
+
+After deployment, you'll have these key identifiers:
+
+```bash
+# From deployment outputs - save these values
+MEMORY_ID="SecurityAssessment_XXXXXXX"
+RUNTIME_ARN="arn:aws:bedrock-agentcore:us-east-1:ACCOUNT:runtime/security_agent-XXXXXXX"
+GATEWAY_URL="https://XXXXXXX.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp"
+LAMBDA_ARN="arn:aws:lambda:us-east-1:ACCOUNT:function:security-agent-bridge"
+AGENT_ID="XXXXXXXXXX"
+ALIAS_ID="XXXXXXXXXX"
 ```
 
 ### Step 4: Deploy Bedrock Agent
