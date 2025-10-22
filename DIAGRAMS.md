@@ -1,9 +1,9 @@
 # Architecture Diagrams
 
-## Complete System Architecture
-![Complete Architecture Diagram](./architecture_diagram_complete.png)
+## Final System Architecture
+![Final Architecture Diagram](./architecture_diagram_final.png)
 
-The complete system architecture shows the enterprise-grade AgentCore Security Assessment platform with:
+The corrected system architecture shows the accurate AgentCore Security Assessment platform with:
 
 ### **Web Frontend Infrastructure**
 - **S3 Static Hosting**: Hosts React application assets
@@ -24,8 +24,9 @@ The complete system architecture shows the enterprise-grade AgentCore Security A
 
 ### **AgentCore Platform**
 - **AgentCore Gateway**: OAuth-protected API gateway with Cognito integration
-- **AgentCore Runtime**: Well-Architected Security MCP Server execution environment
-- **Claude 3.7 Sonnet**: Advanced foundation model for security reasoning
+- **AgentCore Runtime**: Contains two distinct components:
+  - **Agent (Claude 3.7 Sonnet)**: Handles reasoning and natural language understanding
+  - **Security MCP Server**: Direct AWS API calls without LLM processing
 - **AgentCore Memory**: Persistent context storage across sessions
 
 ### **AWS Security Services**
@@ -34,38 +35,39 @@ The complete system architecture shows the enterprise-grade AgentCore Security A
 - **Inspector**: Vulnerability assessment
 - **IAM Access Analyzer**: Access permissions analysis
 
-## Complete Process Flow
-![Complete Process Flow Diagram](./process_flow_complete.png)
+## Final Process Flow
+![Final Process Flow Diagram](./process_flow_final.png)
 
-The complete process flow demonstrates the enterprise-grade end-to-end workflow:
+The corrected process flow demonstrates the accurate end-to-end workflow:
 
 1. **Frontend & Authentication**: React UI → Cognito Authentication → IAM Token Generation
 2. **Natural Language Processing**: Bedrock Agent → Claude 3 Sonnet Reasoning → Lambda Bridge Parameter Extraction
-3. **AgentCore Processing**: OAuth Validation → Memory Context Check → Security MCP Server → Claude 3.7 Sonnet Processing
-4. **AWS Security Services**: Parallel API calls to Security Hub, GuardDuty, Inspector, and IAM Access Analyzer
+3. **AgentCore Processing**: OAuth Validation → Memory Context Check → Agent Reasoning (Claude 3.7 Sonnet) → Security MCP Tools Selection
+4. **Direct AWS API Calls**: Security MCP Server makes direct API calls to AWS services (no LLM involved)
 5. **Response Generation**: Data aggregation, Bedrock formatting, and context storage
 
-## Key Enterprise Features
+## Key Technical Clarifications
 
-### **Security & Compliance**
-- **Multi-layer Authentication**: Cognito User Pool + Identity Pool + IAM Roles
-- **OAuth 2.0 Integration**: Enterprise-grade API security
-- **Well-Architected Framework**: Security best practices implementation
+### **AgentCore Runtime Architecture**
+The AgentCore Runtime contains two distinct components:
 
-### **Scalability & Performance**
-- **CloudFront CDN**: Global content delivery with edge caching
-- **AgentCore Runtime**: Serverless, auto-scaling execution environment
-- **Memory Persistence**: Context retention across user sessions
+1. **Agent with Claude 3.7 Sonnet**: 
+   - Handles natural language understanding and reasoning
+   - Processes user queries and determines which tools to use
+   - Provides intelligent responses and recommendations
 
-### **AI & Intelligence**
-- **Dual Foundation Models**: Claude 3 Sonnet (orchestration) + Claude 3.7 Sonnet (reasoning)
-- **Natural Language Interface**: Ask security questions in plain English
-- **Multi-Service Integration**: Unified access to AWS security services
+2. **Security MCP Server**: 
+   - Contains security assessment tools (`check_security_services`, `get_security_findings`, etc.)
+   - Makes **direct AWS API calls** to Security Hub, GuardDuty, Inspector, and IAM Access Analyzer
+   - **No LLM processing** - pure API integration for data retrieval
+   - Implements AWS Well-Architected Security Framework best practices
 
-### **Enterprise Architecture**
-- **Microservices Design**: Loosely coupled, independently deployable components
-- **Event-driven Processing**: Asynchronous security assessment workflows
-- **Real-time Streaming**: Immediate feedback and progressive results
+### **Data Flow Clarification**
+- **User Query** → **Bedrock Agent (Claude 3 Sonnet)** → **Lambda Bridge** → **AgentCore Gateway**
+- **AgentCore Gateway** → **Agent (Claude 3.7 Sonnet)** for reasoning and tool selection
+- **Agent** → **Security MCP Server** for direct AWS API calls
+- **Security MCP Server** → **AWS Security Services** (direct API calls, no LLM)
+- **Results** → **Agent** → **Memory Storage** → **Response Formatting**
 
 ## Technical Implementation
 
