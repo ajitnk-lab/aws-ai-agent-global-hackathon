@@ -2,6 +2,11 @@
 
 A complete transformation of the AWS Well-Architected Security MCP server into a production-ready AgentCore application with Bedrock Agent integration.
 
+## 🚀 **Live Demo**
+**Deployed Application**: https://dwtz1c6gg4gdx.cloudfront.net/
+
+*Experience the AI-powered security assessment platform in action!*
+
 ## 🏗️ System Architecture
 
 ![System Architecture](./architecture_diagram_final.png)
