@@ -2,18 +2,49 @@
 
 A complete transformation of the AWS Well-Architected Security MCP server into a production-ready AgentCore application with Bedrock Agent integration.
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
-```
-User Request → Bedrock Agent → Lambda Bridge → AgentCore Gateway (OAuth) → AgentCore Runtime → AgentCore Memory
-```
+![System Architecture](./architecture_diagram_final.png)
 
-**Components:**
-- **Bedrock Agent**: Natural language security assessment interface
-- **Lambda Bridge**: Handles authentication and request routing
-- **AgentCore Gateway**: OAuth-protected API gateway
-- **AgentCore Runtime**: Secure agent execution environment
-- **AgentCore Memory**: Persistent security context storage
+### **Enterprise Components:**
+- **Web Frontend**: S3 + CloudFront + React App
+- **Identity Management**: Cognito User Pool + Identity Pool + IAM Roles
+- **AI Processing**: Bedrock Agent (Claude 3 Sonnet) + Lambda Bridge
+- **AgentCore Platform**: OAuth Gateway + Agent (Claude 3.7 Sonnet) + Security MCP Server
+- **AWS Security Services**: Direct API integration with Security Hub, GuardDuty, Inspector, IAM Analyzer
+
+## 🔄 Process Flow
+
+![Process Flow](./process_flow_final.png)
+
+### **Workflow:**
+1. **Authentication**: React UI → Cognito → IAM Tokens
+2. **NLP Processing**: Bedrock Agent → Claude 3 Sonnet → Lambda Bridge
+3. **AgentCore**: OAuth Validation → Agent Reasoning → MCP Tools Selection
+4. **Direct API Calls**: Security MCP Server → AWS Security Services (no LLM)
+5. **Response**: Data aggregation → Formatting → Memory storage
+
+## ✨ Key Features
+
+### **🤖 AI-Powered Security Analysis**
+- **Natural Language Interface**: Ask security questions in plain English
+- **Dual AI Models**: Claude 3 Sonnet (orchestration) + Claude 3.7 Sonnet (reasoning)
+- **Intelligent Tool Selection**: AI determines optimal security assessment approach
+
+### **🔒 Enterprise Security**
+- **Multi-layer Authentication**: Cognito User Pool + Identity Pool + IAM Roles
+- **OAuth 2.0 Integration**: Enterprise-grade API security
+- **Well-Architected Framework**: Security best practices implementation
+
+### **⚡ High Performance**
+- **Direct AWS API Calls**: Security MCP Server bypasses LLM for data retrieval
+- **CloudFront CDN**: Global content delivery with edge caching
+- **Memory Persistence**: Context retention across user sessions
+
+### **🔧 Comprehensive Integration**
+- **Multi-Service Support**: Security Hub, GuardDuty, Inspector, IAM Access Analyzer
+- **Real-time Processing**: Streaming responses with immediate feedback
+- **Scalable Architecture**: Serverless, auto-scaling execution environment
 
 ## 🚀 Quick Deployment
 
