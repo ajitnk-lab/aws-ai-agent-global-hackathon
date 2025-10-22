@@ -330,6 +330,32 @@ For issues and questions:
 3. Ensure all environment variables are properly configured
 4. Verify AWS permissions for all services
 
-## License
+## 🙏 Credits & Acknowledgments
+
+### **Original MCP Server**
+This project is built upon and adapts the **AWS Well-Architected Security MCP Server** developed by AWS Labs:
+- **Original Repository**: https://github.com/awslabs/mcp/tree/main/src/well-architected-security-mcp-server
+- **License**: Apache License, Version 2.0
+- **Credits**: AWS Labs team for creating the foundational security assessment tools
+
+### **Transformation & Enhancement**
+We transformed the original MCP server into a production-ready AgentCore application by:
+- **AgentCore Integration**: Hosting as a Bedrock AgentCore application with enterprise features
+- **Natural Language Interface**: Adding Bedrock Agent for conversational security assessment
+- **Enterprise Architecture**: Implementing OAuth, memory persistence, and scalable deployment
+- **Web Frontend**: Creating a React-based user interface with CloudFront distribution
+- **Multi-layer Authentication**: Adding Cognito User Pool and Identity Pool integration
+
+### **AWS Services Used**
+- Amazon Bedrock AgentCore (Runtime, Memory, Gateway)
+- Amazon Bedrock Agent with Claude 3 Sonnet
+- AWS Lambda for bridge functionality
+- Amazon Cognito for authentication
+- Amazon S3 and CloudFront for web hosting
+- AWS Security Hub, GuardDuty, Inspector, IAM Access Analyzer
+
+**Special thanks to the AWS Labs team for providing the excellent foundation that made this enterprise-grade security assessment platform possible.**
+
+## 📄 License
 
 This project is licensed under the Apache License, Version 2.0 - same as the original AWS Well-Architected Security MCP Server.
